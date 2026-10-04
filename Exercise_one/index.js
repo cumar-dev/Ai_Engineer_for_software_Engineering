@@ -16,7 +16,7 @@ const genearteTopicText = async (Topic) => {
           content: `simply your are Ai agent you have to do the tasks i send you and give me the best information:  ${Topic}`,
         },
       ],
-      max_tokens: 200,
+      max_tokens: 500,
     }),
   });
   const data = await response.json();
@@ -50,7 +50,7 @@ const createBlogPost = async (blog) => {
           content: `Write a complete blog post or article about: ${blog}`,
         },
       ],
-      max_tokens: 300,
+      max_tokens: 100,
       stream: true,
     }),
   });
@@ -170,7 +170,7 @@ const askQuestion = async (question, context) => {
           content: ` Here is the previous context: ${context}Now answer this question: ${question} `,
         },
       ],
-      max_tokens: 300,
+      max_tokens: 400,
     }),
   });
 
@@ -206,20 +206,22 @@ const askQuestions = async (question, context, mode = "factual") => {
     body: JSON.stringify({
       model: "nvidia/nemotron-3.5-lightning:free",
       temperature,
+
       messages: [
         {
           role: "system",
           content:
             mode === "creative"
-              ? "You are a creative AI assistant. Give engaging and imaginative answers."
-              : "You are a factual AI assistant. Give accurate, clear, and direct answers.",
+              ? "You are a creative AI assistant. Give only the final answer. Do not show your reasoning or thinking process. Use engaging and simple explanations."
+              : "You are a factual AI assistant. Give only the final answer. Do not show your reasoning or thinking process. Give accurate, clear, and direct answers.",
         },
         {
           role: "user",
-          content: `Previous context:${context}Question:${question}`,
+          content: `Previous context: ${context} Question: ${question} `,
         },
       ],
-      max_tokens: 300,
+
+      max_tokens: 500,
     }),
   });
 
@@ -232,15 +234,20 @@ const askQuestions = async (question, context, mode = "factual") => {
   return data.choices[0].message.content;
 };
 
-const fatctualAnswer = await askQuestions(
+const factualAnswer = await askQuestions(
   "Why is Python commonly used for AI?",
   resultTwo,
   "factual",
 );
-console.log(fatctualAnswer);
+
+console.log("\n--- Factual Answer ---");
+console.log(factualAnswer);
+
 const creativeAnswer = await askQuestions(
   "Explain why Python is popular for AI using a simple real-world analogy.",
   resultTwo,
   "creative",
 );
+
+console.log("\n--- Creative Answer ---");
 console.log(creativeAnswer);
