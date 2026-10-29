@@ -35,7 +35,7 @@ export async function logInWithGoogle() {
   const user = await auth.api.signInSocial({
     body: {
       provider: "google",
-      callbackURL: "/chat",
+      callbackURL: "/dashboard",
     },
   });
   if (user.url) {
@@ -44,8 +44,17 @@ export async function logInWithGoogle() {
 }
 
 export async function getUserInfo() {
+  console.log("1. Getting headers");
+
+  const requestHeaders = await headers();
+
+  console.log("2. Calling Better Auth");
+
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: requestHeaders,
   });
+
+  console.log("3. Session retrieved");
+
   return session;
 }
