@@ -41,6 +41,7 @@ export async function logInWithGoogle() {
   if (user.url) {
     redirect(user.url);
   }
+  throw new Error("Google sign-in URL was not returned");
 }
 
 export async function getUserInfo() {

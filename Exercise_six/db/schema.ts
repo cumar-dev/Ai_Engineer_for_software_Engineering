@@ -75,6 +75,26 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const conversation = pgTable(
+  "conversation", {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    userId: text("userId").notNull().references(()=> user.id, {onDelete: "cascade"}),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").$onUpdate(()=> new Date()).notNull()
+  }
+)
+export const message = pgTable(
+  "message", {
+    id: text("id").primaryKey(),
+    content: text("content").notNull(),
+    role: text("role").notNull(),
+    conversationId: text("conversationID").references(()=> conversation.id, {onDelete: "cascade"}),
+    userId: text("userId").references(()=> user.id, {onDelete: "cascade"}),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").$onUpdate(()=> new Date()).notNull()
+  }
+)
 export const relations = defineRelations({ user, session, account }, (r) => ({
   user: {
     sessions: r.many.session(),

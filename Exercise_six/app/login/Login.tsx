@@ -55,7 +55,7 @@ const Login = () => {
         {/* Google button (UI only) */}
         <form action={logInWithGoogle}>
         <button
-          type="button"
+          type="submit"
           className="flex w-full items-center justify-center gap-3 cursor-pointer rounded-xl border border-gray-200 bg-white py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-gray-100 active:scale-[0.98]"
         >
           <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
