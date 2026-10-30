@@ -68,20 +68,23 @@ export async function getUserConversationById({
   }
 }
 
-export async function updateConversation({
-  conversationId,
-  title,
-}: {
-  conversationId: string;
-  title: string;
-}) {
+export async function updateConversation(
+  conversationId: string,
+  title: string,
+  userId: string,
+) {
   const [updatedConversation] = await db
     .update(conversation)
     .set({
       title,
       updatedAt: new Date(),
     })
-    .where(eq(conversation.id, conversationId))
+    .where(
+      and(
+        eq(conversation.id, conversationId),
+        eq(conversation.userId, userId),
+      ),
+    )
     .returning();
 
   return updatedConversation;
