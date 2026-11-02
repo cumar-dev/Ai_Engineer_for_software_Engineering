@@ -12,7 +12,7 @@ import { mermaid } from "@streamdown/mermaid";
 import { math } from "@streamdown/math";
 import { cjk } from "@streamdown/cjk";
 
-import { Paperclip, Send, Square, X, Pencil } from "lucide-react";
+import { Paperclip, Send, Square, X, Pencil, Bot, User } from "lucide-react";
 
 const plugins = {
   code,
@@ -234,115 +234,162 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
   // Loading authentication
   if (isPending || !session?.user) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
         Loading chat...
       </div>
     );
   }
 
+  const userInitial = session.user.name?.trim()?.[0]?.toUpperCase();
+  const canSend =
+    (input.trim().length > 0 || attachments.length > 0) && status === "ready";
+  const isBusy = status === "streaming" || status === "submitted";
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <main className="flex-1 overflow-y-auto px-4 py-8">
+        <div className="mx-auto flex max-w-3xl flex-col gap-8">
           {/* Empty state */}
           {messages.length === 0 && (
-            <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
-              <h1 className="text-3xl font-bold">What can I help you with?</h1>
+            <div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/30">
+                <Bot size={30} />
+              </div>
 
-              <p className="mt-3 text-sm text-muted-foreground">
+              <h1 className="text-3xl font-bold tracking-tight">
+                What can I help you with?
+              </h1>
+
+              <p className="mt-3 max-w-sm text-sm text-muted-foreground">
                 Ask anything and start a conversation.
               </p>
             </div>
           )}
 
           {/* Messages */}
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+          {messages.map((message) => {
+            const isUser = message.role === "user";
+
+            return (
               <div
-                className={`max-w-[90%] rounded-2xl px-4 py-3 ${
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "w-full"
+                key={message.id}
+                className={`flex items-start gap-3 ${
+                  isUser ? "flex-row-reverse" : "flex-row"
                 }`}
               >
-                {/* Message content */}
-                {message.parts.map((part, index) => {
-                  // Text
-                  if (part.type === "text") {
-                    return message.role === "assistant" ? (
-                      <Streamdown
-                        key={index}
-                        plugins={plugins}
-                        isAnimating={
-                          status === "streaming" &&
-                          message.id === messages[messages.length - 1]?.id
-                        }
-                        className="text-sm leading-7"
-                      >
-                        {part.text}
-                      </Streamdown>
-                    ) : (
-                      <p
-                        key={index}
-                        className="whitespace-pre-wrap break-words text-sm leading-7"
-                      >
-                        {part.text}
-                      </p>
-                    );
-                  }
+                {/* Avatar */}
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    isUser
+                      ? "bg-muted text-foreground ring-1 ring-border"
+                      : "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
+                  }`}
+                >
+                  {isUser ? (
+                    (userInitial ?? <User size={16} />)
+                  ) : (
+                    <Bot size={16} />
+                  )}
+                </div>
 
-                  // Images
-                  if (part.type === "file") {
-                    if (part.mediaType?.startsWith("image/")) {
-                      return (
-                        <img
-                          key={index}
-                          src={part.url}
-                          alt={part.filename ?? "Uploaded image"}
-                          className="mb-3 max-h-72 rounded-lg object-contain"
-                        />
-                      );
+                {/* Content */}
+                <div
+                  className={`group flex min-w-0 flex-col ${
+                    isUser ? "max-w-[80%] items-end" : "w-full items-start"
+                  }`}
+                >
+                  <div
+                    className={
+                      isUser
+                        ? "rounded-2xl rounded-tr-md bg-blue-600 px-4 py-2.5 text-white shadow-sm"
+                        : "w-full pt-1"
                     }
-                  }
-
-                  return null;
-                })}
-
-                {/* Edit button */}
-                {message.role === "user" && (
-                  <button
-                    type="button"
-                    onClick={() => handleEditMessage(message)}
-                    className="mt-2 flex items-center gap-1 text-xs opacity-70 hover:opacity-100"
                   >
-                    <Pencil size={13} />
-                    Edit
-                  </button>
-                )}
+                    {message.parts.map((part, index) => {
+                      // Text
+                      if (part.type === "text") {
+                        return !isUser ? (
+                          <Streamdown
+                            key={index}
+                            plugins={plugins}
+                            isAnimating={
+                              status === "streaming" &&
+                              message.id === messages[messages.length - 1]?.id
+                            }
+                            className="text-sm leading-7"
+                          >
+                            {part.text}
+                          </Streamdown>
+                        ) : (
+                          <p
+                            key={index}
+                            className="whitespace-pre-wrap break-words text-sm leading-7"
+                          >
+                            {part.text}
+                          </p>
+                        );
+                      }
+
+                      // Images
+                      if (part.type === "file") {
+                        if (part.mediaType?.startsWith("image/")) {
+                          return (
+                            <img
+                              key={index}
+                              src={part.url}
+                              alt={part.filename ?? "Uploaded image"}
+                              className="mb-2 max-h-72 rounded-xl object-contain"
+                            />
+                          );
+                        }
+                      }
+
+                      return null;
+                    })}
+                  </div>
+
+                  {/* Edit button */}
+                  {isUser && (
+                    <button
+                      type="button"
+                      onClick={() => handleEditMessage(message)}
+                      className="mt-1.5 flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Pencil size={12} />
+                      Edit
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Thinking indicator */}
           {status === "submitted" && (
-            <p className="text-sm text-muted-foreground">AI is thinking...</p>
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+                <Bot size={16} />
+              </div>
+
+              <div className="flex items-center gap-1.5 pt-3">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-blue-600/70 [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-blue-600/70 [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-blue-600/70" />
+              </div>
+            </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="rounded-lg border border-destructive p-4 text-sm">
-              <p>{error.message}</p>
+            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+              <p className="text-destructive">{error.message}</p>
 
               <button
                 type="button"
                 onClick={() => regenerate()}
-                className="mt-2 underline"
+                className="mt-2 font-medium text-blue-600 hover:underline"
               >
                 Try again
               </button>
@@ -354,17 +401,20 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
       </main>
 
       {/* Input */}
-      <footer className="shrink-0 border-t p-4">
+      <footer className="shrink-0 bg-gradient-to-t from-background via-background to-transparent px-4 pb-4 pt-2">
         <div className="mx-auto max-w-3xl">
           {/* Editing indicator */}
           {editingMessageId && (
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Editing message</span>
+            <div className="mb-2 flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2 text-sm dark:bg-blue-500/10">
+              <span className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Pencil size={13} />
+                Editing message
+              </span>
 
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground transition hover:text-foreground"
               >
                 Cancel
               </button>
@@ -379,15 +429,16 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
                   <img
                     src={item.url}
                     alt="Image preview"
-                    className="h-20 w-20 rounded-lg object-cover"
+                    className="h-20 w-20 rounded-xl border object-cover"
                   />
 
                   <button
                     type="button"
                     onClick={() => removeAttachment(index)}
-                    className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-white"
+                    aria-label="Remove image"
+                    className="absolute -right-2 -top-2 rounded-full bg-foreground p-1 text-background shadow transition hover:bg-destructive hover:text-white"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
@@ -396,7 +447,7 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
 
           <form
             onSubmit={handleSubmit}
-            className="flex items-end gap-2 rounded-2xl border bg-background p-3 shadow-sm"
+            className="flex items-end gap-2 rounded-3xl border bg-background p-2.5 shadow-lg shadow-black/5 transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10"
           >
             {/* File input */}
             <input
@@ -411,7 +462,7 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg p-2 hover:bg-muted"
+              className="rounded-full p-2.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
               title="Upload image"
             >
               <Paperclip size={20} />
@@ -435,15 +486,15 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
                 editingMessageId ? "Edit your message..." : "Ask anything..."
               }
               rows={1}
-              className="max-h-40 min-h-10 flex-1 resize-y bg-transparent px-2 py-2 text-sm outline-none"
+              className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-1 py-2.5 text-sm outline-none placeholder:text-muted-foreground [field-sizing:content]"
             />
 
             {/* Send / Stop */}
-            {status === "streaming" || status === "submitted" ? (
+            {isBusy ? (
               <button
                 type="button"
                 onClick={() => stop()}
-                className="rounded-lg bg-destructive p-3 text-white"
+                className="rounded-full bg-foreground p-3 text-background transition hover:opacity-80"
                 title="Stop generating"
               >
                 <Square size={16} />
@@ -451,11 +502,8 @@ const Chat = ({ chatId, initialMessage }: PropsChat) => {
             ) : (
               <button
                 type="submit"
-                disabled={
-                  (!input.trim() && attachments.length === 0) ||
-                  status !== "ready"
-                }
-                className="rounded-lg bg-primary p-3 text-primary-foreground disabled:opacity-50"
+                disabled={!canSend}
+                className="rounded-full bg-blue-600 p-3 text-white shadow-sm shadow-blue-500/30 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
                 title={editingMessageId ? "Update message" : "Send message"}
               >
                 <Send size={18} />
