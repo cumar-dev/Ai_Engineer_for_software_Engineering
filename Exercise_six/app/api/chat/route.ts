@@ -1,5 +1,5 @@
 import { openRouter } from "@/lib/ai";
-import { loadChat, saveChat, updateConversation } from "@/lib/chat";
+import { getUserConversationById, loadChat, saveChat, updateConversation } from "@/lib/chat";
 import { getUserInfo } from "@/server/user";
 
 import {
@@ -18,13 +18,22 @@ export async function POST(req: Request) {
     const user = await getUserInfo();
 
     if (!user?.user?.id) {
-      return Response.json({ message: "Unauthorized" }, { status: 401 });
+      return Response.json(
+        { error: "Unauthorized" },
+        { status: 401 },
+      );
     }
+
+    const userId = user.user.id;
 
     // 2. Get request body
     const body = await req.json();
 
-    const { messages, message: singleMessage, id: conversationId } = body;
+    const {
+      messages,
+      message: singleMessage,
+      id: conversationId,
+    } = body;
 
     if (!conversationId) {
       return Response.json(
@@ -34,36 +43,49 @@ export async function POST(req: Request) {
     }
 
     // 3. Verify conversation ownership
-    // loadChat should verify that this conversation belongs to user.user.id.
+    const conversationRecord = await getUserConversationById({
+      userId,
+      conversationId,
+    });
+
+    if (!conversationRecord) {
+      console.error("Conversation not found:", {
+        conversationId,
+        userId,
+      });
+
+      return Response.json(
+        { error: "Conversation not found" },
+        { status: 404 },
+      );
+    }
+
+    // 4. Get messages
     let allMessages: UIMessage[];
 
     if (singleMessage) {
-      const previousMessages = await loadChat(conversationId);
-
+      const previousMessages = await loadChat(conversationId, userId);
       allMessages = [...previousMessages, singleMessage];
     } else if (messages) {
       allMessages = messages;
     } else {
-      return Response.json({ error: "Message is required" }, { status: 400 });
+      return Response.json(
+        { error: "Message is required" },
+        { status: 400 },
+      );
     }
 
-    // 4. Validate messages
-    let validatedMessages: UIMessage[];
+    // 5. Validate messages
+    const validatedMessages = await validateUIMessages({
+      messages: allMessages,
+    });
 
-    try {
-      validatedMessages = await validateUIMessages({
-        messages: allMessages,
-      });
-    } catch (error) {
-      console.error("Message validation failed:", error);
+    // 6. Convert messages
+    const modelMessages = await convertToModelMessages(
+      validatedMessages,
+    );
 
-      return Response.json({ error: "Invalid messages" }, { status: 400 });
-    }
-
-    // 5. Convert messages for AI model
-    const modelMessages = await convertToModelMessages(validatedMessages);
-
-    // 6. Stream AI response
+    // 7. Generate AI response
     const result = streamText({
       model: openRouter(
         process.env.OPENROUTER_VISION_MODEL ||
@@ -74,10 +96,10 @@ export async function POST(req: Request) {
       messages: modelMessages,
     });
 
-    // 7. Consume stream
+    // 8. Consume stream
     result.consumeStream();
 
-    // 8. Return response and save messages
+    // 9. Return response and save messages
     return result.toUIMessageStreamResponse({
       originalMessages: validatedMessages,
 
@@ -87,19 +109,20 @@ export async function POST(req: Request) {
       }),
 
       onFinish: async ({ messages }) => {
-        try {
-           await saveChat(conversationId, messages);
-        } catch (error) {
-          console.error("Error saving chat:", error);
-        }
+        console.log("Saving messages:", messages.length);
+
+        await saveChat(conversationId, messages, userId);
+
+        console.log("Messages saved successfully");
       },
     });
   } catch (error) {
     console.error("Chat API error:", error);
 
-    return new Response("Internal Server Error", {
-      status: 500,
-    });
+    return Response.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 

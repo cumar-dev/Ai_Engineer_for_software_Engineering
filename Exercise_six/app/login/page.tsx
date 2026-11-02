@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 import { getUserInfo } from "@/server/user";
 import { redirect } from "next/navigation";
 import Login from "./Login";

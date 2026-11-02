@@ -13,36 +13,33 @@ interface getUserConversationById {
 export async function createConversation({
   userId,
   title,
-}: createConversation) {
-  try {
-    const conversationID = nanoid();
-    await db.insert(conversation).values({
-      id: conversationID,
-      title,
-      userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    return conversationID;
-  } catch (error: unknown) {
-    console.error(
-      error instanceof Error ? error.message : "Something went wrong",
-    );
-  }
+}: {
+  userId: string;
+  title: string;
+}) {
+  const id = nanoid();
+
+  await db.insert(conversation).values({
+    id,
+    userId,
+    title,
+  });
+
+  return id;
 }
 
 export async function getUserConversation(userId: string) {
   try {
-    const user = await db
+    const conversations = await db
       .select()
       .from(conversation)
       .where(eq(conversation.userId, userId))
-      .orderBy(desc(conversation.createdAt));
-    return user;
+      .orderBy(desc(conversation.updatedAt));
+
+    return conversations;
   } catch (error) {
-    console.error(
-      error instanceof Error ? error.message : "Something went wrong",
-    );
+    console.error("Failed to get user conversations:", error);
+    throw error;
   }
 }
 
@@ -51,20 +48,21 @@ export async function getUserConversationById({
   conversationId,
 }: getUserConversationById) {
   try {
-    const [user] = await db
+    const [result] = await db
       .select()
       .from(conversation)
       .where(
         and(
-          eq(conversation.userId, userId),
           eq(conversation.id, conversationId),
+          eq(conversation.userId, userId),
         ),
-      ).limit(1);
-      return user;
+      )
+      .limit(1);
+
+    return result ?? null;
   } catch (error) {
-    console.error(
-      error instanceof Error ? error.message : "Something went wrong",
-    );
+    console.error("Get conversation failed:", error);
+    throw error;
   }
 }
 
@@ -80,6 +78,20 @@ export async function updateConversation(
       updatedAt: new Date(),
     })
     .where(
+      and(eq(conversation.id, conversationId), eq(conversation.userId, userId)),
+    )
+    .returning();
+
+  return updatedConversation;
+}
+
+export async function deleteConversation(
+  conversationId: string,
+  userId: string,
+) {
+  const [deleted] = await db
+    .delete(conversation)
+    .where(
       and(
         eq(conversation.id, conversationId),
         eq(conversation.userId, userId),
@@ -87,14 +99,5 @@ export async function updateConversation(
     )
     .returning();
 
-  return updatedConversation;
-}
-
-export async function deleteConversation(conversationId: string) {
-  const [deletedConversation] = await db
-    .delete(conversation)
-    .where(eq(conversation.id, conversationId))
-    .returning();
-
-  return deletedConversation;
+  return deleted;
 }

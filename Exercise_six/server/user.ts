@@ -35,7 +35,7 @@ export async function logInWithGoogle() {
   const user = await auth.api.signInSocial({
     body: {
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: "/chat",
     },
   });
   if (user.url) {

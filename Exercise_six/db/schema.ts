@@ -95,21 +95,60 @@ export const message = pgTable(
     updatedAt: timestamp("updatedAt").$onUpdate(()=> new Date()).notNull()
   }
 )
-export const relations = defineRelations({ user, session, account }, (r) => ({
-  user: {
-    sessions: r.many.session(),
-    accounts: r.many.account(),
-  },
-  session: {
-    user: r.one.user({
-      from: r.session.userId,
-      to: r.user.id,
-    }),
-  },
-  account: {
-    user: r.one.user({
-      from: r.account.userId,
-      to: r.user.id,
-    }),
-  },
-}));
+export const relations = defineRelations(
+  { user, session, account, conversation, message },
+  (r) => ({
+    user: {
+      sessions: r.many.session(),
+      accounts: r.many.account(),
+
+      conversations: r.many.conversation({
+        from: r.user.id,
+        to: r.conversation.userId,
+      }),
+
+      messages: r.many.message({
+        from: r.user.id,
+        to: r.message.userId,
+      }),
+    },
+
+    session: {
+      user: r.one.user({
+        from: r.session.userId,
+        to: r.user.id,
+      }),
+    },
+
+    account: {
+      user: r.one.user({
+        from: r.account.userId,
+        to: r.user.id,
+      }),
+    },
+
+    conversation: {
+      user: r.one.user({
+        from: r.conversation.userId,
+        to: r.user.id,
+      }),
+
+      messages: r.many.message({
+        from: r.conversation.id,
+        to: r.message.conversationId,
+      }),
+    },
+
+    message: {
+      user: r.one.user({
+        from: r.message.userId,
+        to: r.user.id,
+      }),
+
+      conversation: r.one.conversation({
+        from: r.message.conversationId,
+        to: r.conversation.id,
+      }),
+    },
+  }),
+);

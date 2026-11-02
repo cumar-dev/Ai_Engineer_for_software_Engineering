@@ -32,7 +32,7 @@ const Login = () => {
         toast.add({
             description: "login is successfully..."
         })
-        router.push("/dashboard");
+        router.replace("/chat/new");
         reset();
      } catch (error: unknown) {
          setError(error instanceof Error ? error.message : "Something went wrong");
